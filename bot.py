@@ -130,70 +130,93 @@ def get_ohlc():
 
         candles = data["data"]
         df = pd.DataFrame(candles, columns=["time","open","close","high","low","volume","turnover"])
+
         for col in ["open","close","high","low"]:
             df[col] = df[col].astype(float)
+
         df = df.iloc[::-1].reset_index(drop=True)
         return df
+
     except Exception as e:
         print("Fetch OHLC error:", e)
         return None
 
+
 def check_range_alert():
     global last_price
+
     df = get_ohlc()
     if df is None or len(df) < 20:
         return "NONE", last_price
 
-    price_now = df["close"].iloc[-1]
-    price_60min_ago = df["close"].iloc[-5]
-    slope = (price_now - price_60min_ago)/4
+    # ✅ APPLY OFFSET TO PRICE (FIX)
+    price_now = df["close"].iloc[-1] - 200
+    price_60min_ago = df["close"].iloc[-5] - 200
 
-    atr = ta.volatility.AverageTrueRange(high=df["high"], low=df["low"], close=df["close"], window=14).average_true_range().iloc[-1]
-    vol_factor = atr*0.5
+    slope = (price_now - price_60min_ago) / 4
+
+    atr = ta.volatility.AverageTrueRange(
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        window=14
+    ).average_true_range().iloc[-1]
+
+    vol_factor = atr * 0.5
+
     ema20 = ta.trend.EMAIndicator(df["close"], 20).ema_indicator()
     direction = 1 if ema20.iloc[-1] > ema20.iloc[-5] else -1
 
-    predicted = price_now + slope + direction*vol_factor - 200
+    predicted = price_now + slope + direction * vol_factor
 
     if predicted >= price_now + RANGE:
-        return "BET-UP", price_now
+        return "BET-UP", df["close"].iloc[-1]  # return real price
     elif predicted <= price_now - RANGE:
-        return "BET-DOWN", price_now
+        return "BET-DOWN", df["close"].iloc[-1]
     else:
-        return "NONE", price_now
+        return "NONE", df["close"].iloc[-1]
+
 
 def run_range_bot():
     global last_price, last_time, alerts_list
+
     last_status = None
+
     while True:
         try:
             status, price = check_range_alert()
+
             last_price = price
             last_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             if status != last_status:
-                if status=="BET-UP":
+                if status == "BET-UP":
                     msg = f"📈 RANGE UP | {SYMBOL} | {price}"
-                elif status=="BET-DOWN":
+                elif status == "BET-DOWN":
                     msg = f"📉 RANGE DOWN | {SYMBOL} | {price}"
                 else:
                     msg = f"⏸ RANGE NO SIGNAL | {SYMBOL} | {price}"
+
                 print(msg)
                 send_telegram(msg)
+
                 alerts_list.append(msg)
-                if len(alerts_list)>50:
+                if len(alerts_list) > 50:
                     alerts_list = alerts_list[-50:]
+
                 save_state()
                 last_status = status
+
             time.sleep(30)
+
         except Exception as e:
             print("Range bot error:", e)
             time.sleep(60)
+
 
 # ---------------------------
 # Run Services
 # ---------------------------
 if __name__ == "__main__":
-    # Flask server
-    Thread(target=lambda: app.run(host="0.0.0.0", port=int(os.environ.get("PORT",8080)))).start()
-    # Range bot loop
+    Thread(target=lambda: app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))).start()
     Thread(target=run_range_bot).start()
