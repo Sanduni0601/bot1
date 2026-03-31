@@ -379,8 +379,8 @@ def check_range_alert():
     if df is None or len(df) < 20:
         return "NONE", last_price
 
-    price_now = df["close"].iloc[-1]
-    price_30min_ago = df["close"].iloc[-2]
+    price_now = df["close"].iloc[-1] - 200
+    price_30min_ago = df["close"].iloc[-5] - 200
 
     slope_per_candle = (price_now - price_30min_ago) / 2
     slope = slope_per_candle * 5  # 75 mins
