@@ -312,37 +312,37 @@ def home():
 # ---------------------------
 # TradingView Webhook
 # ---------------------------
-@app.route("/tv-webhook", methods=["POST"])
-def tradingview_webhook():
-    global last_price, last_time, alerts_list
+# @app.route("/tv-webhook", methods=["POST"])
+# def tradingview_webhook():
+#     global last_price, last_time, alerts_list
 
-    data = request.json
-    if not data:
-        return "No data received", 400
+#     data = request.json
+#     if not data:
+#         return "No data received", 400
 
-    action = data.get("action")
-    price = data.get("price", 0.0)
-    symbol = data.get("symbol", SYMBOL)
+#     action = data.get("action")
+#     price = data.get("price", 0.0)
+#     symbol = data.get("symbol", SYMBOL)
 
-    last_price = price
-    last_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#     last_price = price
+#     last_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    if action == "BUY":
-        msg = f"📈 TRADINGVIEW UP | {symbol} | {price}"
-    elif action == "SELL":
-        msg = f"📉 TRADINGVIEW DOWN | {symbol} | {price}"
-    else:
-        msg = f"⏸ TRADINGVIEW NO SIGNAL | {symbol} | {price}"
+#     if action == "BUY":
+#         msg = f"📈 TRADINGVIEW UP | {symbol} | {price}"
+#     elif action == "SELL":
+#         msg = f"📉 TRADINGVIEW DOWN | {symbol} | {price}"
+#     else:
+#         msg = f"⏸ TRADINGVIEW NO SIGNAL | {symbol} | {price}"
 
-    print(msg)
-    send_telegram(msg)
+#     print(msg)
+#     send_telegram(msg)
 
-    alerts_list.append(msg)
-    if len(alerts_list) > 50:
-        alerts_list = alerts_list[-50:]
+#     alerts_list.append(msg)
+#     if len(alerts_list) > 50:
+#         alerts_list = alerts_list[-50:]
 
-    save_state()
-    return "ok", 200
+#     save_state()
+#     return "ok", 200
 
 # ---------------------------
 # Fetch OHLC
